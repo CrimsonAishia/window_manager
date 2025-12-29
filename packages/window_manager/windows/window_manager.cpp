@@ -89,12 +89,14 @@ class WindowManager {
 
   bool is_resizing_ = false;
   bool is_moving_ = false;
+  bool is_ready_ = false;  // Track if window is ready (first paint done)
 
   HWND GetMainWindow();
   void WindowManager::ForceRefresh();
   void WindowManager::ForceChildRefresh();
   void WindowManager::SetAsFrameless();
   void WindowManager::WaitUntilReadyToShow();
+  flutter::EncodableMap WindowManager::GetPrimaryScreenSize();
   void WindowManager::Destroy();
   void WindowManager::Close();
   bool WindowManager::IsPreventClose();
@@ -228,6 +230,31 @@ void WindowManager::SetAsFrameless() {
 void WindowManager::WaitUntilReadyToShow() {
   ::CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
                      IID_PPV_ARGS(&taskbar_));
+}
+
+flutter::EncodableMap WindowManager::GetPrimaryScreenSize() {
+  flutter::EncodableMap resultMap = flutter::EncodableMap();
+  
+  // Get primary monitor work area (excluding taskbar)
+  RECT workArea;
+  SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+  
+  // Get full screen size
+  int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+  int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+  
+  // Work area size (excluding taskbar)
+  int workWidth = workArea.right - workArea.left;
+  int workHeight = workArea.bottom - workArea.top;
+  
+  resultMap[flutter::EncodableValue("screenWidth")] = flutter::EncodableValue(static_cast<double>(screenWidth));
+  resultMap[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(static_cast<double>(screenHeight));
+  resultMap[flutter::EncodableValue("workAreaWidth")] = flutter::EncodableValue(static_cast<double>(workWidth));
+  resultMap[flutter::EncodableValue("workAreaHeight")] = flutter::EncodableValue(static_cast<double>(workHeight));
+  resultMap[flutter::EncodableValue("workAreaX")] = flutter::EncodableValue(static_cast<double>(workArea.left));
+  resultMap[flutter::EncodableValue("workAreaY")] = flutter::EncodableValue(static_cast<double>(workArea.top));
+  
+  return resultMap;
 }
 
 void WindowManager::Destroy() {

@@ -347,10 +347,19 @@ void WindowManagerPlugin::HandleMethodCall(
   if (method_name.compare("ensureInitialized") == 0) {
     window_manager->native_window =
         ::GetAncestor(registrar->GetView()->GetNativeWindow(), GA_ROOT);
+    // Emit ready event immediately after initialization
+    // This is faster than waiting for WM_SIZE which may be delayed
+    if (!window_manager->is_ready_) {
+      window_manager->is_ready_ = true;
+      _EmitEvent("ready");
+    }
     result->Success(flutter::EncodableValue(true));
   } else if (method_name.compare("waitUntilReadyToShow") == 0) {
     window_manager->WaitUntilReadyToShow();
     result->Success(flutter::EncodableValue(true));
+  } else if (method_name.compare("getPrimaryScreenSize") == 0) {
+    flutter::EncodableMap screenInfo = window_manager->GetPrimaryScreenSize();
+    result->Success(flutter::EncodableValue(screenInfo));
   } else if (method_name.compare("getId") == 0) {
     result->Success(flutter::EncodableValue(
         reinterpret_cast<__int64>(window_manager->GetMainWindow())));
@@ -392,6 +401,8 @@ void WindowManagerPlugin::HandleMethodCall(
   } else if (method_name.compare("isVisible") == 0) {
     bool value = window_manager->IsVisible();
     result->Success(flutter::EncodableValue(value));
+  } else if (method_name.compare("isReady") == 0) {
+    result->Success(flutter::EncodableValue(window_manager->is_ready_));
   } else if (method_name.compare("isMaximized") == 0) {
     bool value = window_manager->IsMaximized();
     result->Success(flutter::EncodableValue(value));

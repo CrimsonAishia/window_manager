@@ -52,6 +52,13 @@ abstract mixin class WindowListener {
   /// @platforms windows
   void onWindowUndocked() {}
 
+  /// Emitted when the window is ready for rendering.
+  /// This is fired after the first paint, indicating the window
+  /// is fully initialized and safe to resize/reposition.
+  ///
+  /// @platforms windows
+  void onWindowReady() {}
+
   /// Emitted all events.
   void onWindowEvent(String eventName) {}
 }

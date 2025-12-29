@@ -28,6 +28,7 @@ const kWindowEventLeaveFullScreen = 'leave-full-screen';
 
 const kWindowEventDocked = 'docked';
 const kWindowEventUndocked = 'undocked';
+const kWindowEventReady = 'ready';
 
 enum DockSide { left, right }
 
@@ -71,6 +72,7 @@ class WindowManager {
         kWindowEventLeaveFullScreen: listener.onWindowLeaveFullScreen,
         kWindowEventDocked: listener.onWindowDocked,
         kWindowEventUndocked: listener.onWindowUndocked,
+        kWindowEventReady: listener.onWindowReady,
       };
       funcMap[eventName]?.call();
     }
@@ -102,6 +104,87 @@ class WindowManager {
 
   Future<void> ensureInitialized() async {
     await _channel.invokeMethod('ensureInitialized');
+  }
+
+  /// Check if the window is ready for rendering.
+  /// 
+  /// @platforms windows
+  Future<bool> isReady() async {
+    return await _channel.invokeMethod('isReady') as bool;
+  }
+
+  /// Wait until the window is ready for rendering.
+  /// This returns a Future that completes when the window is ready.
+  /// 
+  /// Since ready event is emitted during ensureInitialized(),
+  /// this method first checks if already ready, then waits for event if not.
+  /// 
+  /// @platforms windows
+  Future<void> waitUntilReady() async {
+    // First check if already ready (fast path)
+    if (await isReady()) {
+      return;
+    }
+    
+    // If not ready, wait for the ready event
+    final completer = Completer<void>();
+    
+    void listener(String eventName) {
+      if (eventName == kWindowEventReady && !completer.isCompleted) {
+        completer.complete();
+      }
+    }
+    
+    // Create a temporary listener
+    final tempListener = _ReadyListener(listener);
+    addListener(tempListener);
+    
+    // Wait for ready event with timeout
+    try {
+      await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          // If timeout, assume window is ready
+          debugPrint('[WindowManager] waitUntilReady timeout, assuming ready');
+        },
+      );
+    } finally {
+      removeListener(tempListener);
+    }
+  }
+
+  /// Get the primary screen size and work area information.
+  /// 
+  /// Returns a map containing:
+  /// - screenWidth: Full screen width
+  /// - screenHeight: Full screen height
+  /// - workAreaWidth: Work area width (excluding taskbar)
+  /// - workAreaHeight: Work area height (excluding taskbar)
+  /// - workAreaX: Work area left position
+  /// - workAreaY: Work area top position
+  /// 
+  /// @platforms windows
+  Future<Map<String, double>> getPrimaryScreenSize() async {
+    final result = await _channel.invokeMethod('getPrimaryScreenSize');
+    if (result is Map) {
+      return {
+        'screenWidth': (result['screenWidth'] as num?)?.toDouble() ?? 1920.0,
+        'screenHeight': (result['screenHeight'] as num?)?.toDouble() ?? 1080.0,
+        'workAreaWidth': (result['workAreaWidth'] as num?)?.toDouble() ?? 1920.0,
+        'workAreaHeight': (result['workAreaHeight'] as num?)?.toDouble() ?? 1040.0,
+        'workAreaX': (result['workAreaX'] as num?)?.toDouble() ?? 0.0,
+        'workAreaY': (result['workAreaY'] as num?)?.toDouble() ?? 0.0,
+      };
+    }
+    // Fallback for non-Windows platforms
+    return {
+      'screenWidth': 1920.0,
+      'screenHeight': 1080.0,
+      'workAreaWidth': 1920.0,
+      'workAreaHeight': 1040.0,
+      'workAreaX': 0.0,
+      'workAreaY': 0.0,
+    };
   }
 
   /// Returns `int` - The ID of the window.
@@ -773,3 +856,15 @@ class WindowManager {
 }
 
 final windowManager = WindowManager.instance;
+
+/// Internal helper class for waitUntilReady
+class _ReadyListener with WindowListener {
+  final void Function(String) _onEvent;
+  
+  _ReadyListener(this._onEvent);
+  
+  @override
+  void onWindowEvent(String eventName) {
+    _onEvent(eventName);
+  }
+}
