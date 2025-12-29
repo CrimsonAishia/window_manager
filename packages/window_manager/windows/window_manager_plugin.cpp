@@ -383,6 +383,9 @@ void WindowManagerPlugin::HandleMethodCall(
   } else if (method_name.compare("show") == 0) {
     window_manager->Show();
     result->Success(flutter::EncodableValue(true));
+  } else if (method_name.compare("showWithoutActivating") == 0) {
+    window_manager->ShowWithoutActivating();
+    result->Success(flutter::EncodableValue(true));
   } else if (method_name.compare("hide") == 0) {
     window_manager->Hide();
     result->Success(flutter::EncodableValue(true));

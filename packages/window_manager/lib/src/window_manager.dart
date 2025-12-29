@@ -217,6 +217,18 @@ class WindowManager {
     await _channel.invokeMethod('show', arguments);
   }
 
+  /// Shows the window without activating it (no focus steal).
+  /// This is useful for notification windows that shouldn't interrupt user input.
+  ///
+  /// @platforms windows
+  Future<void> showWithoutActivating() async {
+    bool isMinimized = await this.isMinimized();
+    if (isMinimized) {
+      await restore();
+    }
+    await _channel.invokeMethod('showWithoutActivating');
+  }
+
   /// Hides the window.
   Future<void> hide() async {
     await _channel.invokeMethod('hide');

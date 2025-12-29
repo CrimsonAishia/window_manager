@@ -103,6 +103,7 @@ class WindowManager {
   void WindowManager::Blur();
   bool WindowManager::IsFocused();
   void WindowManager::Show();
+  void WindowManager::ShowWithoutActivating();
   void WindowManager::Hide();
   bool WindowManager::IsVisible();
   bool WindowManager::IsMaximized();
@@ -284,6 +285,21 @@ void WindowManager::Show() {
 
   ShowWindowAsync(GetMainWindow(), SW_SHOW);
   SetForegroundWindow(GetMainWindow());
+}
+
+void WindowManager::ShowWithoutActivating() {
+  HWND hWnd = GetMainWindow();
+  DWORD gwlStyle = GetWindowLong(hWnd, GWL_STYLE);
+  gwlStyle = gwlStyle | WS_VISIBLE;
+  if ((gwlStyle & WS_VISIBLE) == 0) {
+    SetWindowLong(hWnd, GWL_STYLE, gwlStyle);
+  }
+
+  // Use SW_SHOWNOACTIVATE to show window without activating/focusing
+  // Also use SWP_NOACTIVATE to ensure no focus is taken
+  ShowWindow(hWnd, SW_SHOWNOACTIVATE);
+  SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 void WindowManager::Hide() {
