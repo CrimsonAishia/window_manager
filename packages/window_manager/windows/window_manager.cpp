@@ -191,11 +191,11 @@ void WindowManager::ForceRefresh() {
   SetWindowPos(
       hWnd, nullptr, rect.left, rect.top, rect.right - rect.left + 1,
       rect.bottom - rect.top,
-      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
   SetWindowPos(
       hWnd, nullptr, rect.left, rect.top, rect.right - rect.left,
       rect.bottom - rect.top,
-      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
 }
 
 void WindowManager::ForceChildRefresh() {
@@ -207,11 +207,11 @@ void WindowManager::ForceChildRefresh() {
   SetWindowPos(
       hWnd, nullptr, rect.left, rect.top, rect.right - rect.left + 1,
       rect.bottom - rect.top,
-      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
   SetWindowPos(
       hWnd, nullptr, rect.left, rect.top, rect.right - rect.left,
       rect.bottom - rect.top,
-      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
 }
 
 void WindowManager::SetAsFrameless() {
@@ -224,7 +224,7 @@ void WindowManager::SetAsFrameless() {
   SetWindowPos(hWnd, nullptr, rect.left, rect.top, rect.right - rect.left,
                rect.bottom - rect.top,
                SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE |
-                   SWP_FRAMECHANGED);
+                   SWP_FRAMECHANGED | SWP_NOACTIVATE);
 }
 
 void WindowManager::WaitUntilReadyToShow() {
@@ -316,6 +316,12 @@ void WindowManager::Show() {
 
 void WindowManager::ShowWithoutActivating() {
   HWND hWnd = GetMainWindow();
+  
+  // Set WS_EX_NOACTIVATE extended style to ensure window never gets focus
+  LONG exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+  exStyle |= WS_EX_NOACTIVATE;
+  SetWindowLong(hWnd, GWL_EXSTYLE, exStyle);
+  
   DWORD gwlStyle = GetWindowLong(hWnd, GWL_STYLE);
   gwlStyle = gwlStyle | WS_VISIBLE;
   if ((gwlStyle & WS_VISIBLE) == 0) {
@@ -815,6 +821,9 @@ void WindowManager::SetBounds(const flutter::EncodableMap& args) {
     uFlags = SWP_NOSIZE;
   }
 
+  // Add SWP_NOACTIVATE to prevent window from getting focus when setting position/size
+  uFlags |= SWP_NOACTIVATE;
+
   SetWindowPos(hwnd, HWND_TOP, x, y, width, height, uFlags);
 }
 
@@ -921,7 +930,7 @@ void WindowManager::SetAlwaysOnTop(const flutter::EncodableMap& args) {
   bool isAlwaysOnTop =
       std::get<bool>(args.at(flutter::EncodableValue("isAlwaysOnTop")));
   SetWindowPos(GetMainWindow(), isAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
-               0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+               0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 bool WindowManager::IsAlwaysOnBottom() {
@@ -934,7 +943,7 @@ void WindowManager::SetAlwaysOnBottom(const flutter::EncodableMap& args) {
 
   SetWindowPos(GetMainWindow(),
                is_always_on_bottom_ ? HWND_BOTTOM : HWND_NOTOPMOST, 0, 0, 0, 0,
-               SWP_NOMOVE | SWP_NOSIZE);
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 std::string WindowManager::GetTitle() {
@@ -968,7 +977,7 @@ void WindowManager::SetTitleBarStyle(const flutter::EncodableMap& args) {
   DwmExtendFrameIntoClientArea(hWnd, &margins);
   SetWindowPos(hWnd, nullptr, rect.left, rect.top, 0, 0,
                SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE |
-                   SWP_FRAMECHANGED);
+                   SWP_FRAMECHANGED | SWP_NOACTIVATE);
 }
 
 int WindowManager::GetTitleBarHeight() {
