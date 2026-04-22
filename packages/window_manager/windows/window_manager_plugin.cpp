@@ -390,7 +390,20 @@ void WindowManagerPlugin::HandleMethodCall(
     bool value = window_manager->IsFocused();
     result->Success(flutter::EncodableValue(value));
   } else if (method_name.compare("show") == 0) {
-    window_manager->Show();
+    bool inactive = false;
+    if (method_call.arguments() && !method_call.arguments()->IsNull()) {
+      const flutter::EncodableMap& args =
+          std::get<flutter::EncodableMap>(*method_call.arguments());
+      auto* inactive_value = std::get_if<bool>(ValueOrNull(args, "inactive"));
+      if (inactive_value != nullptr) {
+        inactive = *inactive_value;
+      }
+    }
+    if (inactive) {
+      window_manager->ShowWithoutActivating();
+    } else {
+      window_manager->Show();
+    }
     result->Success(flutter::EncodableValue(true));
   } else if (method_name.compare("showWithoutActivating") == 0) {
     window_manager->ShowWithoutActivating();

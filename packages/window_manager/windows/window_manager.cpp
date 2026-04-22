@@ -303,6 +303,11 @@ bool WindowManager::IsFocused() {
 
 void WindowManager::Show() {
   HWND hWnd = GetMainWindow();
+  LONG exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+  if (exStyle & WS_EX_NOACTIVATE) {
+    exStyle &= ~WS_EX_NOACTIVATE;
+    SetWindowLong(hWnd, GWL_EXSTYLE, exStyle);
+  }
   DWORD gwlStyle = GetWindowLong(hWnd, GWL_STYLE);
   gwlStyle = gwlStyle | WS_VISIBLE;
   if ((gwlStyle & WS_VISIBLE) == 0) {
@@ -534,7 +539,7 @@ void PASCAL WindowManager::AppBarQuerySetPos(HWND hwnd,
 
   // Move and size the appbar so that it conforms to the
   // bounding rectangle passed to the system.
-  UINT uFlags = NULL;
+  UINT uFlags = SWP_NOACTIVATE;
   SetWindowPos(hwnd, HWND_TOP, pabd->rc.left, pabd->rc.top,
                pabd->rc.right - pabd->rc.left, pabd->rc.bottom - pabd->rc.top,
                uFlags);
@@ -655,11 +660,11 @@ void WindowManager::SetFullScreen(const flutter::EncodableMap& args) {
           g_style_before_fullscreen & ~(WS_THICKFRAME | WS_MAXIMIZEBOX));
       ::SetWindowPos(mainWindow, HWND_TOP, monitor.rcMonitor.left,
                      monitor.rcMonitor.top, 0, 0,
-                     SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                     SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
       ::SetWindowPos(mainWindow, HWND_TOP, 0, 0,
                      monitor.rcMonitor.right - monitor.rcMonitor.left,
                      monitor.rcMonitor.bottom - monitor.rcMonitor.top,
-                     SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                     SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
     }
   } else {  // Restore from fullscreen
     // if (!g_maximized_before_fullscreen)
@@ -698,7 +703,7 @@ void WindowManager::SetFullScreen(const flutter::EncodableMap& args) {
       DwmExtendFrameIntoClientArea(mainWindow, &margins);
       SetWindowPos(mainWindow, nullptr, rect1.left, rect1.top, 0, 0,
                    SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE |
-                       SWP_FRAMECHANGED);
+                       SWP_FRAMECHANGED | SWP_NOACTIVATE);
     }
   }
 }
